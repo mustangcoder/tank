@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/model"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/builder"
 	"github.com/eyebluecn/tank/code/tool/i18n"
 	"github.com/eyebluecn/tank/code/tool/result"
@@ -12,57 +16,63 @@ import (
 
 type MatterController struct {
 	BaseController
-	matterDao         *MatterDao
-	matterService     *MatterService
-	preferenceService *PreferenceService
-	downloadTokenDao  *DownloadTokenDao
-	imageCacheDao     *ImageCacheDao
-	shareDao          *ShareDao
-	shareService      *ShareService
-	bridgeDao         *BridgeDao
-	imageCacheService *ImageCacheService
+	matterDao         *dao.MatterDao
+	matterService     *service.MatterService
+	preferenceService *service.PreferenceService
+	downloadTokenDao  *dao.DownloadTokenDao
+	imageCacheDao     *dao.ImageCacheDao
+	shareDao          *dao.ShareDao
+	shareService      *service.ShareService
+	bridgeDao         *dao.BridgeDao
+	imageCacheService *service.ImageCacheService
+	userService       *service.UserService
 }
 
 func (this *MatterController) Init() {
 	this.BaseController.Init()
 
-	b := core.CONTEXT.GetBean(this.matterDao)
-	if b, ok := b.(*MatterDao); ok {
+	b := core.CONTEXT.GetBean(this.userService)
+	if b, ok := b.(*service.UserService); ok {
+		this.userService = b
+	}
+
+	b = core.CONTEXT.GetBean(this.matterDao)
+	if b, ok := b.(*dao.MatterDao); ok {
 		this.matterDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.matterService)
-	if b, ok := b.(*MatterService); ok {
+	if b, ok := b.(*service.MatterService); ok {
 		this.matterService = b
 	}
 
 	b = core.CONTEXT.GetBean(this.downloadTokenDao)
-	if b, ok := b.(*DownloadTokenDao); ok {
+	if b, ok := b.(*dao.DownloadTokenDao); ok {
 		this.downloadTokenDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheDao)
-	if b, ok := b.(*ImageCacheDao); ok {
+	if b, ok := b.(*dao.ImageCacheDao); ok {
 		this.imageCacheDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.shareDao)
-	if b, ok := b.(*ShareDao); ok {
+	if b, ok := b.(*dao.ShareDao); ok {
 		this.shareDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.shareService)
-	if b, ok := b.(*ShareService); ok {
+	if b, ok := b.(*service.ShareService); ok {
 		this.shareService = b
 	}
 
 	b = core.CONTEXT.GetBean(this.bridgeDao)
-	if b, ok := b.(*BridgeDao); ok {
+	if b, ok := b.(*dao.BridgeDao); ok {
 		this.bridgeDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheService)
-	if b, ok := b.(*ImageCacheService); ok {
+	if b, ok := b.(*service.ImageCacheService); ok {
 		this.imageCacheService = b
 	}
 }
@@ -71,25 +81,25 @@ func (this *MatterController) RegisterRoutes() map[string]func(writer http.Respo
 
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
-	routeMap["/api/matter/create/directory"] = this.Wrap(this.CreateDirectory, USER_ROLE_USER)
-	routeMap["/api/matter/upload"] = this.Wrap(this.Upload, USER_ROLE_USER)
-	routeMap["/api/matter/crawl"] = this.Wrap(this.Crawl, USER_ROLE_USER)
-	routeMap["/api/matter/soft/delete"] = this.Wrap(this.SoftDelete, USER_ROLE_USER)
-	routeMap["/api/matter/soft/delete/batch"] = this.Wrap(this.SoftDeleteBatch, USER_ROLE_USER)
-	routeMap["/api/matter/recovery"] = this.Wrap(this.Recovery, USER_ROLE_USER)
-	routeMap["/api/matter/recovery/batch"] = this.Wrap(this.RecoveryBatch, USER_ROLE_USER)
-	routeMap["/api/matter/delete"] = this.Wrap(this.Delete, USER_ROLE_USER)
-	routeMap["/api/matter/delete/batch"] = this.Wrap(this.DeleteBatch, USER_ROLE_USER)
-	routeMap["/api/matter/clean/expired/deleted/matters"] = this.Wrap(this.CleanExpiredDeletedMatters, USER_ROLE_ADMINISTRATOR)
-	routeMap["/api/matter/rename"] = this.Wrap(this.Rename, USER_ROLE_USER)
-	routeMap["/api/matter/change/privacy"] = this.Wrap(this.ChangePrivacy, USER_ROLE_USER)
-	routeMap["/api/matter/move"] = this.Wrap(this.Move, USER_ROLE_USER)
-	routeMap["/api/matter/detail"] = this.Wrap(this.Detail, USER_ROLE_USER)
-	routeMap["/api/matter/page"] = this.Wrap(this.Page, USER_ROLE_GUEST)
+	routeMap["/api/matter/create/directory"] = this.Wrap(this.CreateDirectory, constant.USER_ROLE_USER)
+	routeMap["/api/matter/upload"] = this.Wrap(this.Upload, constant.USER_ROLE_USER)
+	routeMap["/api/matter/crawl"] = this.Wrap(this.Crawl, constant.USER_ROLE_USER)
+	routeMap["/api/matter/soft/delete"] = this.Wrap(this.SoftDelete, constant.USER_ROLE_USER)
+	routeMap["/api/matter/soft/delete/batch"] = this.Wrap(this.SoftDeleteBatch, constant.USER_ROLE_USER)
+	routeMap["/api/matter/recovery"] = this.Wrap(this.Recovery, constant.USER_ROLE_USER)
+	routeMap["/api/matter/recovery/batch"] = this.Wrap(this.RecoveryBatch, constant.USER_ROLE_USER)
+	routeMap["/api/matter/delete"] = this.Wrap(this.Delete, constant.USER_ROLE_USER)
+	routeMap["/api/matter/delete/batch"] = this.Wrap(this.DeleteBatch, constant.USER_ROLE_USER)
+	routeMap["/api/matter/clean/expired/deleted/matters"] = this.Wrap(this.CleanExpiredDeletedMatters, constant.USER_ROLE_ADMINISTRATOR)
+	routeMap["/api/matter/rename"] = this.Wrap(this.Rename, constant.USER_ROLE_USER)
+	routeMap["/api/matter/change/privacy"] = this.Wrap(this.ChangePrivacy, constant.USER_ROLE_USER)
+	routeMap["/api/matter/move"] = this.Wrap(this.Move, constant.USER_ROLE_USER)
+	routeMap["/api/matter/detail"] = this.Wrap(this.Detail, constant.USER_ROLE_USER)
+	routeMap["/api/matter/page"] = this.Wrap(this.Page, constant.USER_ROLE_GUEST)
 
 	//mirror local files.
-	routeMap["/api/matter/mirror"] = this.Wrap(this.Mirror, USER_ROLE_USER)
-	routeMap["/api/matter/zip"] = this.Wrap(this.Zip, USER_ROLE_USER)
+	routeMap["/api/matter/mirror"] = this.Wrap(this.Mirror, constant.USER_ROLE_USER)
+	routeMap["/api/matter/zip"] = this.Wrap(this.Zip, constant.USER_ROLE_USER)
 
 	return routeMap
 }
@@ -103,7 +113,7 @@ func (this *MatterController) Detail(writer http.ResponseWriter, request *http.R
 
 	matter := this.matterService.Detail(request, uuid)
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 	if matter.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -148,14 +158,14 @@ func (this *MatterController) Page(writer http.ResponseWriter, request *http.Req
 			panic(result.BadRequest("puuid is not a directory"))
 		}
 
-		user := this.findUser(request)
+		user := this.userService.FindUser(request)
 
 		this.shareService.ValidateMatter(request, shareUuid, shareCode, user, shareRootUuid, dirMatter)
 		puuid = dirMatter.Uuid
 
 	} else {
 		//if cannot auth by share. Then login is required.
-		user := this.checkUser(request)
+		user := this.userService.CheckUser(request)
 		userUuid = user.Uuid
 
 	}
@@ -223,7 +233,7 @@ func (this *MatterController) CreateDirectory(writer http.ResponseWriter, reques
 	puuid := request.FormValue("puuid")
 	name := request.FormValue("name")
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	var dirMatter = this.matterDao.CheckWithRootByUuid(puuid, user)
 
@@ -242,9 +252,9 @@ func (this *MatterController) Upload(writer http.ResponseWriter, request *http.R
 		this.PanicError(err)
 	}()
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
-	privacy := privacyStr == TRUE
+	privacy := privacyStr == constant.TRUE
 
 	err = request.ParseMultipartForm(32 << 20)
 	this.PanicError(err)
@@ -275,7 +285,7 @@ func (this *MatterController) Crawl(writer http.ResponseWriter, request *http.Re
 	destPath := request.FormValue("destPath")
 	filename := request.FormValue("filename")
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	dirMatter := this.matterService.CreateDirectories(request, user, destPath)
 
@@ -302,7 +312,7 @@ func (this *MatterController) SoftDelete(writer http.ResponseWriter, request *ht
 
 	matter := this.matterDao.CheckByUuid(uuid)
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 	if matter.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -318,17 +328,17 @@ func (this *MatterController) SoftDeleteBatch(writer http.ResponseWriter, reques
 	if uuids == "" {
 		panic(result.BadRequest("uuids cannot be null"))
 	}
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	uuidArray := strings.Split(uuids, ",")
 
-	matters := make([]*Matter, 0)
+	matters := make([]*model.Matter, 0)
 	for _, uuid := range uuidArray {
 
 		matter := this.matterDao.FindByUuid(uuid)
 
 		if matter == nil {
-			this.logger.Warn("%s not exist anymore", uuid)
+			this.Logger.Warn("%s not exist anymore", uuid)
 			continue
 		}
 
@@ -356,7 +366,7 @@ func (this *MatterController) Recovery(writer http.ResponseWriter, request *http
 
 	matter := this.matterDao.CheckByUuid(uuid)
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 	if matter.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -381,11 +391,11 @@ func (this *MatterController) RecoveryBatch(writer http.ResponseWriter, request 
 		matter := this.matterDao.FindByUuid(uuid)
 
 		if matter == nil {
-			this.logger.Warn("%s not exist anymore", uuid)
+			this.Logger.Warn("%s not exist anymore", uuid)
 			continue
 		}
 
-		user := this.checkUser(request)
+		user := this.userService.CheckUser(request)
 		if matter.UserUuid != user.Uuid {
 			panic(result.UNAUTHORIZED)
 		}
@@ -407,7 +417,7 @@ func (this *MatterController) Delete(writer http.ResponseWriter, request *http.R
 
 	matter := this.matterDao.CheckByUuid(uuid)
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 	if matter.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -425,14 +435,14 @@ func (this *MatterController) DeleteBatch(writer http.ResponseWriter, request *h
 	}
 
 	uuidArray := strings.Split(uuids, ",")
-	user := this.checkUser(request)
-	matters := make([]*Matter, 0)
+	user := this.userService.CheckUser(request)
+	matters := make([]*model.Matter, 0)
 	for _, uuid := range uuidArray {
 
 		matter := this.matterDao.FindByUuid(uuid)
 
 		if matter == nil {
-			this.logger.Warn("%s not exist anymore", uuid)
+			this.Logger.Warn("%s not exist anymore", uuid)
 			continue
 		}
 
@@ -464,7 +474,7 @@ func (this *MatterController) Rename(writer http.ResponseWriter, request *http.R
 	uuid := request.FormValue("uuid")
 	name := request.FormValue("name")
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	matter := this.matterDao.CheckByUuid(uuid)
 
@@ -481,7 +491,7 @@ func (this *MatterController) ChangePrivacy(writer http.ResponseWriter, request 
 	uuid := request.FormValue("uuid")
 	privacyStr := request.FormValue("privacy")
 	privacy := false
-	if privacyStr == TRUE {
+	if privacyStr == constant.TRUE {
 		privacy = true
 	}
 
@@ -495,7 +505,7 @@ func (this *MatterController) ChangePrivacy(writer http.ResponseWriter, request 
 		panic(result.BadRequest("not changed. Invalid operation."))
 	}
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 	if matter.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -518,7 +528,7 @@ func (this *MatterController) Move(writer http.ResponseWriter, request *http.Req
 		srcUuids = strings.Split(srcUuidsStr, ",")
 	}
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	var destMatter = this.matterDao.CheckWithRootByUuid(destUuid, user)
 	if !destMatter.Dir {
@@ -533,7 +543,7 @@ func (this *MatterController) Move(writer http.ResponseWriter, request *http.Req
 		panic(result.BadRequest("dest matter has been deleted. Cannot move."))
 	}
 
-	var srcMatters []*Matter
+	var srcMatters []*model.Matter
 	for _, uuid := range srcUuids {
 		srcMatter := this.matterDao.CheckByUuid(uuid)
 
@@ -576,11 +586,11 @@ func (this *MatterController) Mirror(writer http.ResponseWriter, request *http.R
 	}
 
 	overwrite := false
-	if overwriteStr == TRUE {
+	if overwriteStr == constant.TRUE {
 		overwrite = true
 	}
 
-	user := this.userDao.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	this.matterService.AtomicMirror(request, srcPath, destPath, overwrite, user)
 
@@ -610,7 +620,7 @@ func (this *MatterController) Zip(writer http.ResponseWriter, request *http.Requ
 		}
 	}
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 	puuid := matters[0].Puuid
 
 	for _, m := range matters {

@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/model"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/i18n"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"github.com/eyebluecn/tank/code/tool/util"
@@ -12,36 +16,36 @@ import (
 
 type PreferenceController struct {
 	BaseController
-	preferenceDao     *PreferenceDao
-	matterDao         *MatterDao
-	matterService     *MatterService
-	preferenceService *PreferenceService
-	taskService       *TaskService
+	preferenceDao     *dao.PreferenceDao
+	matterDao         *dao.MatterDao
+	matterService     *service.MatterService
+	preferenceService *service.PreferenceService
+	taskService       *service.TaskService
 }
 
 func (this *PreferenceController) Init() {
 	this.BaseController.Init()
 
 	b := core.CONTEXT.GetBean(this.preferenceDao)
-	if b, ok := b.(*PreferenceDao); ok {
+	if b, ok := b.(*dao.PreferenceDao); ok {
 		this.preferenceDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.matterDao)
-	if b, ok := b.(*MatterDao); ok {
+	if b, ok := b.(*dao.MatterDao); ok {
 		this.matterDao = b
 	}
 	b = core.CONTEXT.GetBean(this.matterService)
-	if b, ok := b.(*MatterService); ok {
+	if b, ok := b.(*service.MatterService); ok {
 		this.matterService = b
 	}
 	b = core.CONTEXT.GetBean(this.preferenceService)
-	if b, ok := b.(*PreferenceService); ok {
+	if b, ok := b.(*service.PreferenceService); ok {
 		this.preferenceService = b
 	}
 
 	b = core.CONTEXT.GetBean(this.taskService)
-	if b, ok := b.(*TaskService); ok {
+	if b, ok := b.(*service.TaskService); ok {
 		this.taskService = b
 	}
 
@@ -51,13 +55,13 @@ func (this *PreferenceController) RegisterRoutes() map[string]func(writer http.R
 
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
-	routeMap["/api/preference/ping"] = this.Wrap(this.Ping, USER_ROLE_GUEST)
-	routeMap["/api/preference/fetch"] = this.Wrap(this.Fetch, USER_ROLE_GUEST)
-	routeMap["/api/preference/edit"] = this.Wrap(this.Edit, USER_ROLE_ADMINISTRATOR)
-	routeMap["/api/preference/edit/preview/config"] = this.Wrap(this.EditPreviewConfig, USER_ROLE_ADMINISTRATOR)
-	routeMap["/api/preference/edit/scan/config"] = this.Wrap(this.EditScanConfig, USER_ROLE_ADMINISTRATOR)
-	routeMap["/api/preference/scan/once"] = this.Wrap(this.ScanOnce, USER_ROLE_ADMINISTRATOR)
-	routeMap["/api/preference/system/cleanup"] = this.Wrap(this.SystemCleanup, USER_ROLE_ADMINISTRATOR)
+	routeMap["/api/preference/ping"] = this.Wrap(this.Ping, constant.USER_ROLE_GUEST)
+	routeMap["/api/preference/fetch"] = this.Wrap(this.Fetch, constant.USER_ROLE_GUEST)
+	routeMap["/api/preference/edit"] = this.Wrap(this.Edit, constant.USER_ROLE_ADMINISTRATOR)
+	routeMap["/api/preference/edit/preview/config"] = this.Wrap(this.EditPreviewConfig, constant.USER_ROLE_ADMINISTRATOR)
+	routeMap["/api/preference/edit/scan/config"] = this.Wrap(this.EditScanConfig, constant.USER_ROLE_ADMINISTRATOR)
+	routeMap["/api/preference/scan/once"] = this.Wrap(this.ScanOnce, constant.USER_ROLE_ADMINISTRATOR)
+	routeMap["/api/preference/system/cleanup"] = this.Wrap(this.SystemCleanup, constant.USER_ROLE_ADMINISTRATOR)
 
 	return routeMap
 }
@@ -65,7 +69,7 @@ func (this *PreferenceController) RegisterRoutes() map[string]func(writer http.R
 //ping the application. Return current version.
 func (this *PreferenceController) Ping(writer http.ResponseWriter, request *http.Request) *result.WebResult {
 
-	return this.Success(core.VERSION)
+	return this.Success(constant.VERSION)
 
 }
 
@@ -136,7 +140,7 @@ func (this *PreferenceController) Edit(writer http.ResponseWriter, request *http
 	}
 
 	var allowRegister = false
-	if allowRegisterStr == TRUE {
+	if allowRegisterStr == constant.TRUE {
 		allowRegister = true
 	}
 
@@ -185,7 +189,7 @@ func (this *PreferenceController) EditScanConfig(writer http.ResponseWriter, req
 
 	preference := this.preferenceDao.Fetch()
 
-	scanConfig := &ScanConfig{}
+	scanConfig := &model.ScanConfig{}
 	err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal([]byte(scanConfigStr), &scanConfig)
 	if err != nil {
 		panic(err)
@@ -199,11 +203,11 @@ func (this *PreferenceController) EditScanConfig(writer http.ResponseWriter, req
 		}
 
 		//validate scope.
-		if scanConfig.Scope == SCAN_SCOPE_CUSTOM {
+		if scanConfig.Scope == constant.SCAN_SCOPE_CUSTOM {
 			if len(scanConfig.Usernames) == 0 {
 				panic(result.BadRequest("scope cannot be null"))
 			}
-		} else if scanConfig.Scope == SCAN_SCOPE_ALL {
+		} else if scanConfig.Scope == constant.SCAN_SCOPE_ALL {
 
 		} else {
 			panic(result.BadRequest("cannot recognize scope %s", scanConfig.Scope))
@@ -222,14 +226,14 @@ func (this *PreferenceController) EditScanConfig(writer http.ResponseWriter, req
 //scan immediately according the current config.
 func (this *PreferenceController) ScanOnce(writer http.ResponseWriter, request *http.Request) *result.WebResult {
 
-	this.taskService.doScanTask()
+	this.taskService.DoScanTask()
 	return this.Success("OK")
 }
 
 //cleanup system data.
 func (this *PreferenceController) SystemCleanup(writer http.ResponseWriter, request *http.Request) *result.WebResult {
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 	password := request.FormValue("password")
 
 	if !util.MatchBcrypt(password, user.Password) {

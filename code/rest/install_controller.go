@@ -2,7 +2,11 @@ package rest
 
 import (
 	"fmt"
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/model"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/builder"
 	"github.com/eyebluecn/tank/code/tool/i18n"
 	"github.com/eyebluecn/tank/code/tool/result"
@@ -18,60 +22,60 @@ import (
 //install apis. Only when installing period can be visited.
 type InstallController struct {
 	BaseController
-	uploadTokenDao    *UploadTokenDao
-	downloadTokenDao  *DownloadTokenDao
-	matterDao         *MatterDao
-	matterService     *MatterService
-	imageCacheDao     *ImageCacheDao
-	imageCacheService *ImageCacheService
-	tableNames        []IBase
+	uploadTokenDao    *dao.UploadTokenDao
+	downloadTokenDao  *dao.DownloadTokenDao
+	matterDao         *dao.MatterDao
+	matterService     *service.MatterService
+	imageCacheDao     *dao.ImageCacheDao
+	imageCacheService *service.ImageCacheService
+	tableNames        []model.IBase
 }
 
 func (this *InstallController) Init() {
 	this.BaseController.Init()
 
 	b := core.CONTEXT.GetBean(this.uploadTokenDao)
-	if c, ok := b.(*UploadTokenDao); ok {
+	if c, ok := b.(*dao.UploadTokenDao); ok {
 		this.uploadTokenDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.downloadTokenDao)
-	if c, ok := b.(*DownloadTokenDao); ok {
+	if c, ok := b.(*dao.DownloadTokenDao); ok {
 		this.downloadTokenDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.matterDao)
-	if c, ok := b.(*MatterDao); ok {
+	if c, ok := b.(*dao.MatterDao); ok {
 		this.matterDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.matterService)
-	if c, ok := b.(*MatterService); ok {
+	if c, ok := b.(*service.MatterService); ok {
 		this.matterService = c
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheDao)
-	if c, ok := b.(*ImageCacheDao); ok {
+	if c, ok := b.(*dao.ImageCacheDao); ok {
 		this.imageCacheDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheService)
-	if c, ok := b.(*ImageCacheService); ok {
+	if c, ok := b.(*service.ImageCacheService); ok {
 		this.imageCacheService = c
 	}
 
-	this.tableNames = []IBase{
-		&Dashboard{},
-		&Bridge{},
-		&DownloadToken{},
-		&Footprint{},
-		&ImageCache{},
-		&Matter{},
-		&Preference{},
-		&Session{},
-		&Share{},
-		&UploadToken{},
-		&User{},
+	this.tableNames = []model.IBase{
+		&model.Dashboard{},
+		&model.Bridge{},
+		&model.DownloadToken{},
+		&model.Footprint{},
+		&model.ImageCache{},
+		&model.Matter{},
+		&model.Preference{},
+		&model.Session{},
+		&model.Share{},
+		&model.UploadToken{},
+		&model.User{},
 	}
 
 }
@@ -80,13 +84,13 @@ func (this *InstallController) RegisterRoutes() map[string]func(writer http.Resp
 
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
-	routeMap["/api/install/verify"] = this.Wrap(this.Verify, USER_ROLE_GUEST)
-	routeMap["/api/install/table/info/list"] = this.Wrap(this.TableInfoList, USER_ROLE_GUEST)
-	routeMap["/api/install/create/table"] = this.Wrap(this.CreateTable, USER_ROLE_GUEST)
-	routeMap["/api/install/admin/list"] = this.Wrap(this.AdminList, USER_ROLE_GUEST)
-	routeMap["/api/install/create/admin"] = this.Wrap(this.CreateAdmin, USER_ROLE_GUEST)
-	routeMap["/api/install/validate/admin"] = this.Wrap(this.ValidateAdmin, USER_ROLE_GUEST)
-	routeMap["/api/install/finish"] = this.Wrap(this.Finish, USER_ROLE_GUEST)
+	routeMap["/api/install/verify"] = this.Wrap(this.Verify, constant.USER_ROLE_GUEST)
+	routeMap["/api/install/table/info/list"] = this.Wrap(this.TableInfoList, constant.USER_ROLE_GUEST)
+	routeMap["/api/install/create/table"] = this.Wrap(this.CreateTable, constant.USER_ROLE_GUEST)
+	routeMap["/api/install/admin/list"] = this.Wrap(this.AdminList, constant.USER_ROLE_GUEST)
+	routeMap["/api/install/create/admin"] = this.Wrap(this.CreateAdmin, constant.USER_ROLE_GUEST)
+	routeMap["/api/install/validate/admin"] = this.Wrap(this.ValidateAdmin, constant.USER_ROLE_GUEST)
+	routeMap["/api/install/finish"] = this.Wrap(this.Finish, constant.USER_ROLE_GUEST)
 
 	return routeMap
 }
@@ -108,7 +112,7 @@ func (this *InstallController) openDbConnection(writer http.ResponseWriter, requ
 
 	mysqlUrl := util.GetMysqlUrl(mysqlPort, mysqlHost, mysqlSchema, mysqlUsername, mysqlPassword, mysqlCharset)
 
-	this.logger.Info("Connect MySQL %s", mysqlUrl)
+	this.Logger.Info("Connect MySQL %s", mysqlUrl)
 
 	var err error = nil
 	db, err := gorm.Open("mysql", mysqlUrl)
@@ -125,12 +129,12 @@ func (this *InstallController) closeDbConnection(db *gorm.DB) {
 	if db != nil {
 		err := db.Close()
 		if err != nil {
-			this.logger.Error("occur error when close db. %v", err)
+			this.Logger.Error("occur error when close db. %v", err)
 		}
 	}
 }
 
-func (this *InstallController) getTableMeta(gormDb *gorm.DB, entity IBase) (bool, []*gorm.StructField, []*gorm.StructField) {
+func (this *InstallController) getTableMeta(gormDb *gorm.DB, entity model.IBase) (bool, []*gorm.StructField, []*gorm.StructField) {
 
 	db := gormDb.Unscoped()
 	scope := db.NewScope(entity)
@@ -159,13 +163,13 @@ func (this *InstallController) getTableMeta(gormDb *gorm.DB, entity IBase) (bool
 
 }
 
-func (this *InstallController) getTableMetaList(db *gorm.DB) []*InstallTableInfo {
+func (this *InstallController) getTableMetaList(db *gorm.DB) []*model.InstallTableInfo {
 
-	var installTableInfos []*InstallTableInfo
+	var installTableInfos []*model.InstallTableInfo
 
 	for _, iBase := range this.tableNames {
 		exist, allFields, missingFields := this.getTableMeta(db, iBase)
-		installTableInfos = append(installTableInfos, &InstallTableInfo{
+		installTableInfos = append(installTableInfos, &model.InstallTableInfo{
 			Name:          iBase.TableName(),
 			TableExist:    exist,
 			AllFields:     allFields,
@@ -177,7 +181,7 @@ func (this *InstallController) getTableMetaList(db *gorm.DB) []*InstallTableInfo
 }
 
 // validate table whether integrity. if not panic err.
-func (this *InstallController) validateTableMetaList(tableInfoList []*InstallTableInfo) {
+func (this *InstallController) validateTableMetaList(tableInfoList []*model.InstallTableInfo) {
 
 	for _, tableInfo := range tableInfoList {
 		if tableInfo.TableExist {
@@ -203,7 +207,7 @@ func (this *InstallController) Verify(writer http.ResponseWriter, request *http.
 	db := this.openDbConnection(writer, request)
 	defer this.closeDbConnection(db)
 
-	this.logger.Info("Ping DB")
+	this.Logger.Info("Ping DB")
 	err := db.DB().Ping()
 	this.PanicError(err)
 
@@ -220,7 +224,7 @@ func (this *InstallController) TableInfoList(writer http.ResponseWriter, request
 
 func (this *InstallController) CreateTable(writer http.ResponseWriter, request *http.Request) *result.WebResult {
 
-	var installTableInfos []*InstallTableInfo
+	var installTableInfos []*model.InstallTableInfo
 
 	db := this.openDbConnection(writer, request)
 	defer this.closeDbConnection(db)
@@ -232,7 +236,7 @@ func (this *InstallController) CreateTable(writer http.ResponseWriter, request *
 		this.PanicError(db1.Error)
 
 		exist, allFields, missingFields := this.getTableMeta(db, iBase)
-		installTableInfos = append(installTableInfos, &InstallTableInfo{
+		installTableInfos = append(installTableInfos, &model.InstallTableInfo{
 			Name:          iBase.TableName(),
 			TableExist:    exist,
 			AllFields:     allFields,
@@ -253,9 +257,9 @@ func (this *InstallController) AdminList(writer http.ResponseWriter, request *ht
 
 	var wp = &builder.WherePair{}
 
-	wp = wp.And(&builder.WherePair{Query: "role = ?", Args: []interface{}{USER_ROLE_ADMINISTRATOR}})
+	wp = wp.And(&builder.WherePair{Query: "role = ?", Args: []interface{}{constant.USER_ROLE_ADMINISTRATOR}})
 
-	var users []*User
+	var users []*model.User
 	db = db.Where(wp.Query, wp.Args...).Offset(0).Limit(10).Find(&users)
 
 	this.PanicError(db.Error)
@@ -273,7 +277,7 @@ func (this *InstallController) CreateAdmin(writer http.ResponseWriter, request *
 	adminPassword := request.FormValue("adminPassword")
 
 	//validate admin's username
-	if m, _ := regexp.MatchString(USERNAME_PATTERN, adminUsername); !m {
+	if m, _ := regexp.MatchString(constant.USERNAME_PATTERN, adminUsername); !m {
 		panic(result.BadRequestI18n(request, i18n.UsernameError))
 	}
 
@@ -283,24 +287,24 @@ func (this *InstallController) CreateAdmin(writer http.ResponseWriter, request *
 
 	//check whether duplicate
 	var count2 int64
-	db2 := db.Model(&User{}).Where("username = ?", adminUsername).Count(&count2)
+	db2 := db.Model(&model.User{}).Where("username = ?", adminUsername).Count(&count2)
 	this.PanicError(db2.Error)
 	if count2 > 0 {
 		panic(result.BadRequestI18n(request, i18n.UsernameExist, adminUsername))
 	}
 
-	user := &User{}
+	user := &model.User{}
 	timeUUID, _ := uuid.NewV4()
 	user.Uuid = string(timeUUID.String())
 	user.CreateTime = time.Now()
 	user.UpdateTime = time.Now()
 	user.LastTime = time.Now()
 	user.Sort = time.Now().UnixNano() / 1e6
-	user.Role = USER_ROLE_ADMINISTRATOR
+	user.Role = constant.USER_ROLE_ADMINISTRATOR
 	user.Username = adminUsername
 	user.Password = util.GetBcrypt(adminPassword)
 	user.SizeLimit = -1
-	user.Status = USER_STATUS_OK
+	user.Status = constant.USER_STATUS_OK
 
 	db3 := db.Create(user)
 	this.PanicError(db3.Error)
@@ -325,8 +329,8 @@ func (this *InstallController) ValidateAdmin(writer http.ResponseWriter, request
 		panic(result.BadRequest(`admin's password at least 6 chars'`))
 	}
 
-	var existUsernameUser = &User{}
-	db = db.Where(&User{Username: adminUsername}).First(existUsernameUser)
+	var existUsernameUser = &model.User{}
+	db = db.Where(&model.User{Username: adminUsername}).First(existUsernameUser)
 	if db.Error != nil {
 		panic(result.BadRequestI18n(request, i18n.UsernameNotExist, adminUsername))
 	}
@@ -335,7 +339,7 @@ func (this *InstallController) ValidateAdmin(writer http.ResponseWriter, request
 		panic(result.BadRequestI18n(request, i18n.UsernameOrPasswordError, adminUsername))
 	}
 
-	if existUsernameUser.Role != USER_ROLE_ADMINISTRATOR {
+	if existUsernameUser.Role != constant.USER_ROLE_ADMINISTRATOR {
 		panic(result.BadRequestI18n(request, i18n.UsernameIsNotAdmin, adminUsername))
 	}
 
@@ -370,7 +374,7 @@ func (this *InstallController) Finish(writer http.ResponseWriter, request *http.
 
 	//At least one admin
 	var count1 int64
-	db1 := db.Model(&User{}).Where("role = ?", USER_ROLE_ADMINISTRATOR).Count(&count1)
+	db1 := db.Model(&model.User{}).Where("role = ?", constant.USER_ROLE_ADMINISTRATOR).Count(&count1)
 	this.PanicError(db1.Error)
 	if count1 == 0 {
 		panic(result.BadRequest(`please config at least one admin user`))

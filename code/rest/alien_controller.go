@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/model"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"github.com/eyebluecn/tank/code/tool/util"
 	"net/http"
@@ -12,56 +16,56 @@ import (
 
 type AlienController struct {
 	BaseController
-	uploadTokenDao    *UploadTokenDao
-	downloadTokenDao  *DownloadTokenDao
-	matterDao         *MatterDao
-	matterService     *MatterService
-	imageCacheDao     *ImageCacheDao
-	imageCacheService *ImageCacheService
-	alienService      *AlienService
-	shareService      *ShareService
+	uploadTokenDao    *dao.UploadTokenDao
+	downloadTokenDao  *dao.DownloadTokenDao
+	matterDao         *dao.MatterDao
+	matterService     *service.MatterService
+	imageCacheDao     *dao.ImageCacheDao
+	imageCacheService *service.ImageCacheService
+	alienService      *service.AlienService
+	shareService      *service.ShareService
 }
 
 func (this *AlienController) Init() {
 	this.BaseController.Init()
 
 	b := core.CONTEXT.GetBean(this.uploadTokenDao)
-	if c, ok := b.(*UploadTokenDao); ok {
+	if c, ok := b.(*dao.UploadTokenDao); ok {
 		this.uploadTokenDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.downloadTokenDao)
-	if c, ok := b.(*DownloadTokenDao); ok {
+	if c, ok := b.(*dao.DownloadTokenDao); ok {
 		this.downloadTokenDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.matterDao)
-	if c, ok := b.(*MatterDao); ok {
+	if c, ok := b.(*dao.MatterDao); ok {
 		this.matterDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.matterService)
-	if c, ok := b.(*MatterService); ok {
+	if c, ok := b.(*service.MatterService); ok {
 		this.matterService = c
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheDao)
-	if c, ok := b.(*ImageCacheDao); ok {
+	if c, ok := b.(*dao.ImageCacheDao); ok {
 		this.imageCacheDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheService)
-	if c, ok := b.(*ImageCacheService); ok {
+	if c, ok := b.(*service.ImageCacheService); ok {
 		this.imageCacheService = c
 	}
 
 	b = core.CONTEXT.GetBean(this.alienService)
-	if c, ok := b.(*AlienService); ok {
+	if c, ok := b.(*service.AlienService); ok {
 		this.alienService = c
 	}
 
 	b = core.CONTEXT.GetBean(this.shareService)
-	if c, ok := b.(*ShareService); ok {
+	if c, ok := b.(*service.ShareService); ok {
 		this.shareService = c
 	}
 }
@@ -70,12 +74,12 @@ func (this *AlienController) RegisterRoutes() map[string]func(writer http.Respon
 
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
-	routeMap["/api/alien/fetch/upload/token"] = this.Wrap(this.FetchUploadToken, USER_ROLE_USER)
-	routeMap["/api/alien/fetch/download/token"] = this.Wrap(this.FetchDownloadToken, USER_ROLE_USER)
-	routeMap["/api/alien/confirm"] = this.Wrap(this.Confirm, USER_ROLE_USER)
-	routeMap["/api/alien/upload"] = this.Wrap(this.Upload, USER_ROLE_GUEST)
-	routeMap["/api/alien/crawl/token"] = this.Wrap(this.CrawlToken, USER_ROLE_GUEST)
-	routeMap["/api/alien/crawl/direct"] = this.Wrap(this.CrawlDirect, USER_ROLE_USER)
+	routeMap["/api/alien/fetch/upload/token"] = this.Wrap(this.FetchUploadToken, constant.USER_ROLE_USER)
+	routeMap["/api/alien/fetch/download/token"] = this.Wrap(this.FetchDownloadToken, constant.USER_ROLE_USER)
+	routeMap["/api/alien/confirm"] = this.Wrap(this.Confirm, constant.USER_ROLE_USER)
+	routeMap["/api/alien/upload"] = this.Wrap(this.Upload, constant.USER_ROLE_GUEST)
+	routeMap["/api/alien/crawl/token"] = this.Wrap(this.CrawlToken, constant.USER_ROLE_GUEST)
+	routeMap["/api/alien/crawl/direct"] = this.Wrap(this.CrawlDirect, constant.USER_ROLE_USER)
 
 	return routeMap
 }
@@ -118,7 +122,7 @@ func (this *AlienController) FetchUploadToken(writer http.ResponseWriter, reques
 	//store dir path
 	dirPath := request.FormValue("dirPath")
 
-	filename = CheckMatterName(request, filename)
+	filename = model.CheckMatterName(request, filename)
 
 	var expireTime time.Time
 	if expireTimeStr == "" {
@@ -131,7 +135,7 @@ func (this *AlienController) FetchUploadToken(writer http.ResponseWriter, reques
 	}
 
 	var privacy = false
-	if privacyStr == TRUE {
+	if privacyStr == constant.TRUE {
 		privacy = true
 	}
 
@@ -150,10 +154,10 @@ func (this *AlienController) FetchUploadToken(writer http.ResponseWriter, reques
 		}
 	}
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 	dirMatter := this.matterService.CreateDirectories(request, user, dirPath)
 
-	uploadToken := &UploadToken{
+	uploadToken := &model.UploadToken{
 		UserUuid:   user.Uuid,
 		FolderUuid: dirMatter.Uuid,
 		MatterUuid: "",
@@ -178,7 +182,7 @@ func (this *AlienController) Confirm(writer http.ResponseWriter, request *http.R
 		panic(result.BadRequest("matterUuid  cannot be null"))
 	}
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 
 	matter := this.matterDao.CheckByUuid(matterUuid)
 	if matter.UserUuid != user.Uuid {
@@ -191,7 +195,7 @@ func (this *AlienController) Confirm(writer http.ResponseWriter, request *http.R
 //a guest upload a file with a upload token.
 func (this *AlienController) Upload(writer http.ResponseWriter, request *http.Request) *result.WebResult {
 	//allow cors.
-	this.allowCORS(writer)
+	this.AllowCORS(writer)
 	if request.Method == "OPTIONS" {
 		//nil means empty response body.
 		return nil
@@ -215,7 +219,7 @@ func (this *AlienController) Upload(writer http.ResponseWriter, request *http.Re
 		panic(result.BadRequest("uploadToken has expired"))
 	}
 
-	user := this.userDao.CheckByUuid(uploadToken.UserUuid)
+	user := this.UserDao.CheckByUuid(uploadToken.UserUuid)
 
 	err = request.ParseMultipartForm(32 << 20)
 	this.PanicError(err)
@@ -243,7 +247,7 @@ func (this *AlienController) Upload(writer http.ResponseWriter, request *http.Re
 func (this *AlienController) CrawlToken(writer http.ResponseWriter, request *http.Request) *result.WebResult {
 
 	//allow cors.
-	this.allowCORS(writer)
+	this.AllowCORS(writer)
 	if request.Method == "OPTIONS" {
 		//nil means empty response body.
 		return nil
@@ -262,7 +266,7 @@ func (this *AlienController) CrawlToken(writer http.ResponseWriter, request *htt
 		panic(result.BadRequest("uploadToken has expired"))
 	}
 
-	user := this.userDao.CheckByUuid(uploadToken.UserUuid)
+	user := this.UserDao.CheckByUuid(uploadToken.UserUuid)
 
 	dirMatter := this.matterDao.CheckWithRootByUuid(uploadToken.FolderUuid, user)
 
@@ -283,14 +287,14 @@ func (this *AlienController) CrawlDirect(writer http.ResponseWriter, request *ht
 	dirPath := request.FormValue("dirPath")
 	url := request.FormValue("url")
 
-	filename = CheckMatterName(request, filename)
+	filename = model.CheckMatterName(request, filename)
 
 	var privacy bool
-	if privacyStr == TRUE {
+	if privacyStr == constant.TRUE {
 		privacy = true
 	}
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 	dirMatter := this.matterService.CreateDirectories(request, user, dirPath)
 
 	matter := this.matterService.AtomicCrawl(request, url, filename, user, dirMatter, privacy)
@@ -308,7 +312,7 @@ func (this *AlienController) FetchDownloadToken(writer http.ResponseWriter, requ
 		panic(result.BadRequest("matterUuid cannot be null."))
 	}
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 
 	matter := this.matterDao.CheckByUuid(matterUuid)
 	if matter.UserUuid != user.Uuid {
@@ -325,7 +329,7 @@ func (this *AlienController) FetchDownloadToken(writer http.ResponseWriter, requ
 		panic(result.BadRequest("expire time cannot before now"))
 	}
 
-	downloadToken := &DownloadToken{
+	downloadToken := &model.DownloadToken{
 		UserUuid:   user.Uuid,
 		MatterUuid: matterUuid,
 		ExpireTime: expireTime,

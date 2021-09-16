@@ -1,6 +1,7 @@
 package support
 
 import (
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
 	"github.com/eyebluecn/tank/code/tool/util"
 	"github.com/json-iterator/go"
@@ -105,7 +106,7 @@ func (this *TankConfig) Init() {
 	}, nil)
 
 	//default server port.
-	this.serverPort = core.DEFAULT_SERVER_PORT
+	this.serverPort = constant.DEFAULT_SERVER_PORT
 
 	this.ReadFromConfigFile()
 

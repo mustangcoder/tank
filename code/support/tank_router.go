@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/eyebluecn/tank/code/core"
 	"github.com/eyebluecn/tank/code/rest"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"github.com/eyebluecn/tank/code/tool/util"
 	"github.com/json-iterator/go"
@@ -17,8 +18,8 @@ import (
 
 type TankRouter struct {
 	installController *rest.InstallController
-	footprintService  *rest.FootprintService
-	userService       *rest.UserService
+	footprintService  *service.FootprintService
+	userService       *service.UserService
 	routeMap          map[string]func(writer http.ResponseWriter, request *http.Request)
 	installRouteMap   map[string]func(writer http.ResponseWriter, request *http.Request)
 }
@@ -37,13 +38,13 @@ func NewRouter() *TankRouter {
 
 	//load userService
 	b = core.CONTEXT.GetBean(router.userService)
-	if b, ok := b.(*rest.UserService); ok {
+	if b, ok := b.(*service.UserService); ok {
 		router.userService = b
 	}
 
 	//load footprintService
 	b = core.CONTEXT.GetBean(router.footprintService)
-	if b, ok := b.(*rest.FootprintService); ok {
+	if b, ok := b.(*service.FootprintService); ok {
 		router.footprintService = b
 	}
 

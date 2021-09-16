@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/model"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/builder"
 	"github.com/eyebluecn/tank/code/tool/i18n"
 	"github.com/eyebluecn/tank/code/tool/result"
@@ -14,38 +18,39 @@ import (
 
 type ShareController struct {
 	BaseController
-	shareDao      *ShareDao
-	bridgeDao     *BridgeDao
-	matterDao     *MatterDao
-	matterService *MatterService
-	shareService  *ShareService
+	shareDao      *dao.ShareDao
+	bridgeDao     *dao.BridgeDao
+	matterDao     *dao.MatterDao
+	matterService *service.MatterService
+	shareService  *service.ShareService
+	userService   *service.UserService
 }
 
 func (this *ShareController) Init() {
 	this.BaseController.Init()
 
 	b := core.CONTEXT.GetBean(this.shareDao)
-	if b, ok := b.(*ShareDao); ok {
+	if b, ok := b.(*dao.ShareDao); ok {
 		this.shareDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.bridgeDao)
-	if b, ok := b.(*BridgeDao); ok {
+	if b, ok := b.(*dao.BridgeDao); ok {
 		this.bridgeDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.matterDao)
-	if b, ok := b.(*MatterDao); ok {
+	if b, ok := b.(*dao.MatterDao); ok {
 		this.matterDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.matterService)
-	if b, ok := b.(*MatterService); ok {
+	if b, ok := b.(*service.MatterService); ok {
 		this.matterService = b
 	}
 
 	b = core.CONTEXT.GetBean(this.shareService)
-	if b, ok := b.(*ShareService); ok {
+	if b, ok := b.(*service.ShareService); ok {
 		this.shareService = b
 	}
 
@@ -55,13 +60,13 @@ func (this *ShareController) RegisterRoutes() map[string]func(writer http.Respon
 
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
-	routeMap["/api/share/create"] = this.Wrap(this.Create, USER_ROLE_USER)
-	routeMap["/api/share/delete"] = this.Wrap(this.Delete, USER_ROLE_USER)
-	routeMap["/api/share/delete/batch"] = this.Wrap(this.DeleteBatch, USER_ROLE_USER)
-	routeMap["/api/share/detail"] = this.Wrap(this.Detail, USER_ROLE_USER)
-	routeMap["/api/share/page"] = this.Wrap(this.Page, USER_ROLE_USER)
-	routeMap["/api/share/browse"] = this.Wrap(this.Browse, USER_ROLE_GUEST)
-	routeMap["/api/share/zip"] = this.Wrap(this.Zip, USER_ROLE_GUEST)
+	routeMap["/api/share/create"] = this.Wrap(this.Create, constant.USER_ROLE_USER)
+	routeMap["/api/share/delete"] = this.Wrap(this.Delete, constant.USER_ROLE_USER)
+	routeMap["/api/share/delete/batch"] = this.Wrap(this.DeleteBatch, constant.USER_ROLE_USER)
+	routeMap["/api/share/detail"] = this.Wrap(this.Detail, constant.USER_ROLE_USER)
+	routeMap["/api/share/page"] = this.Wrap(this.Page, constant.USER_ROLE_USER)
+	routeMap["/api/share/browse"] = this.Wrap(this.Browse, constant.USER_ROLE_GUEST)
+	routeMap["/api/share/zip"] = this.Wrap(this.Zip, constant.USER_ROLE_GUEST)
 
 	return routeMap
 }
@@ -78,7 +83,7 @@ func (this *ShareController) Create(writer http.ResponseWriter, request *http.Re
 
 	var expireTime time.Time
 	expireInfinity := false
-	if expireInfinityStr == TRUE {
+	if expireInfinityStr == constant.TRUE {
 		expireInfinity = true
 		expireTime = time.Now()
 	} else {
@@ -99,15 +104,15 @@ func (this *ShareController) Create(writer http.ResponseWriter, request *http.Re
 
 	if len(uuidArray) == 0 {
 		panic(result.BadRequest("share at least one file"))
-	} else if len(uuidArray) > SHARE_MAX_NUM {
-		panic(result.BadRequestI18n(request, i18n.ShareNumExceedLimit, len(uuidArray), SHARE_MAX_NUM))
+	} else if len(uuidArray) > model.SHARE_MAX_NUM {
+		panic(result.BadRequestI18n(request, i18n.ShareNumExceedLimit, len(uuidArray), model.SHARE_MAX_NUM))
 	}
 
 	var name string
-	shareType := SHARE_TYPE_MIX
-	user := this.checkUser(request)
+	shareType := model.SHARE_TYPE_MIX
+	user := this.userService.CheckUser(request)
 	var puuid string
-	var matters []*Matter
+	var matters []*model.Matter
 	for key, uuid := range uuidArray {
 
 		matter := this.matterDao.CheckByUuid(uuid)
@@ -122,9 +127,9 @@ func (this *ShareController) Create(writer http.ResponseWriter, request *http.Re
 			puuid = matter.Puuid
 			name = matter.Name
 			if matter.Dir {
-				shareType = SHARE_TYPE_DIRECTORY
+				shareType = model.SHARE_TYPE_DIRECTORY
 			} else {
-				shareType = SHARE_TYPE_FILE
+				shareType = model.SHARE_TYPE_FILE
 			}
 		} else {
 			if matter.Puuid != puuid {
@@ -135,11 +140,11 @@ func (this *ShareController) Create(writer http.ResponseWriter, request *http.Re
 	}
 
 	if len(matters) > 1 {
-		shareType = SHARE_TYPE_MIX
+		shareType = model.SHARE_TYPE_MIX
 		name = matters[0].Name + "," + matters[1].Name + " ..."
 	}
 
-	share := &Share{
+	share := &model.Share{
 		Name:           name,
 		ShareType:      shareType,
 		UserUuid:       user.Uuid,
@@ -152,7 +157,7 @@ func (this *ShareController) Create(writer http.ResponseWriter, request *http.Re
 	this.shareDao.Create(share)
 
 	for _, matter := range matters {
-		bridge := &Bridge{
+		bridge := &model.Bridge{
 			ShareUuid:  share.Uuid,
 			MatterUuid: matter.Uuid,
 		}
@@ -194,7 +199,7 @@ func (this *ShareController) DeleteBatch(writer http.ResponseWriter, request *ht
 
 		imageCache := this.shareDao.FindByUuid(uuid)
 
-		user := this.checkUser(request)
+		user := this.userService.CheckUser(request)
 		if imageCache.UserUuid != user.Uuid {
 			panic(result.UNAUTHORIZED)
 		}
@@ -214,7 +219,7 @@ func (this *ShareController) Detail(writer http.ResponseWriter, request *http.Re
 
 	share := this.shareDao.CheckByUuid(uuid)
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	if share.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
@@ -230,7 +235,7 @@ func (this *ShareController) Page(writer http.ResponseWriter, request *http.Requ
 	pageSizeStr := request.FormValue("pageSize")
 	orderCreateTime := request.FormValue("orderCreateTime")
 
-	user := this.checkUser(request)
+	user := this.userService.CheckUser(request)
 
 	var page int
 	if pageStr != "" {
@@ -257,11 +262,11 @@ func (this *ShareController) Page(writer http.ResponseWriter, request *http.Requ
 	return this.Success(pager)
 }
 
-func (this *ShareController) CheckShare(writer http.ResponseWriter, request *http.Request) *Share {
+func (this *ShareController) CheckShare(writer http.ResponseWriter, request *http.Request) *model.Share {
 
 	shareUuid := request.FormValue("shareUuid")
 	code := request.FormValue("code")
-	user := this.findUser(request)
+	user := this.userService.FindUser(request)
 
 	return this.shareService.CheckShare(request, shareUuid, code, user)
 }
@@ -275,13 +280,13 @@ func (this *ShareController) Browse(writer http.ResponseWriter, request *http.Re
 	puuid := request.FormValue("puuid")
 	rootUuid := request.FormValue("rootUuid")
 
-	user := this.findUser(request)
+	user := this.userService.FindUser(request)
 	share := this.shareService.CheckShare(request, shareUuid, code, user)
 	bridges := this.bridgeDao.FindByShareUuid(share.Uuid)
 
-	if puuid == MATTER_ROOT {
+	if puuid == constant.MATTER_ROOT {
 
-		var matters []*Matter
+		var matters []*model.Matter
 		if len(bridges) != 0 {
 			uuids := make([]string, 0)
 			for _, bridge := range bridges {
@@ -290,7 +295,7 @@ func (this *ShareController) Browse(writer http.ResponseWriter, request *http.Re
 			sortArray := []builder.OrderPair{
 				{
 					Key:   "dir",
-					Value: DIRECTION_DESC,
+					Value: constant.DIRECTION_DESC,
 				},
 			}
 			matters = this.matterDao.FindByUuids(uuids, sortArray)
@@ -347,9 +352,9 @@ func (this *ShareController) Zip(writer http.ResponseWriter, request *http.Reque
 	puuid := request.FormValue("puuid")
 	rootUuid := request.FormValue("rootUuid")
 
-	user := this.findUser(request)
+	user := this.userService.FindUser(request)
 
-	if puuid == MATTER_ROOT {
+	if puuid == constant.MATTER_ROOT {
 
 		//download all things.
 		share := this.shareService.CheckShare(request, shareUuid, code, user)
@@ -366,7 +371,7 @@ func (this *ShareController) Zip(writer http.ResponseWriter, request *http.Reque
 		//download a folder.
 		matter := this.matterDao.CheckByUuid(puuid)
 		this.shareService.ValidateMatter(request, shareUuid, code, user, rootUuid, matter)
-		this.matterService.DownloadZip(writer, request, []*Matter{matter})
+		this.matterService.DownloadZip(writer, request, []*model.Matter{matter})
 	}
 
 	return nil

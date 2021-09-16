@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/model"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/i18n"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"github.com/eyebluecn/tank/code/tool/util"
@@ -23,56 +26,62 @@ import (
 
 type DavController struct {
 	BaseController
-	uploadTokenDao    *UploadTokenDao
-	downloadTokenDao  *DownloadTokenDao
-	matterDao         *MatterDao
-	matterService     *MatterService
-	imageCacheDao     *ImageCacheDao
-	imageCacheService *ImageCacheService
-	davService        *DavService
+	uploadTokenDao    *dao.UploadTokenDao
+	downloadTokenDao  *dao.DownloadTokenDao
+	matterDao         *dao.MatterDao
+	matterService     *service.MatterService
+	imageCacheDao     *dao.ImageCacheDao
+	imageCacheService *service.ImageCacheService
+	davService        *service.DavService
+	userDao           *dao.UserDao
 }
 
 func (this *DavController) Init() {
 	this.BaseController.Init()
 
 	b := core.CONTEXT.GetBean(this.uploadTokenDao)
-	if c, ok := b.(*UploadTokenDao); ok {
+	if c, ok := b.(*dao.UploadTokenDao); ok {
 		this.uploadTokenDao = c
 	}
 
+	b = core.CONTEXT.GetBean(this.userDao)
+	if c, ok := b.(*dao.UserDao); ok {
+		this.userDao = c
+	}
+
 	b = core.CONTEXT.GetBean(this.downloadTokenDao)
-	if c, ok := b.(*DownloadTokenDao); ok {
+	if c, ok := b.(*dao.DownloadTokenDao); ok {
 		this.downloadTokenDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.matterDao)
-	if c, ok := b.(*MatterDao); ok {
+	if c, ok := b.(*dao.MatterDao); ok {
 		this.matterDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.matterService)
-	if c, ok := b.(*MatterService); ok {
+	if c, ok := b.(*service.MatterService); ok {
 		this.matterService = c
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheDao)
-	if c, ok := b.(*ImageCacheDao); ok {
+	if c, ok := b.(*dao.ImageCacheDao); ok {
 		this.imageCacheDao = c
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheService)
-	if c, ok := b.(*ImageCacheService); ok {
+	if c, ok := b.(*service.ImageCacheService); ok {
 		this.imageCacheService = c
 	}
 
 	b = core.CONTEXT.GetBean(this.davService)
-	if c, ok := b.(*DavService); ok {
+	if c, ok := b.(*service.DavService); ok {
 		this.davService = c
 	}
 }
 
 //Auth user by BasicAuth
-func (this *DavController) CheckCurrentUser(writer http.ResponseWriter, request *http.Request) *User {
+func (this *DavController) CheckCurrentUser(writer http.ResponseWriter, request *http.Request) *model.User {
 
 	username, password, ok := request.BasicAuth()
 	if !ok {
@@ -106,7 +115,7 @@ func (this *DavController) HandleRoutes(writer http.ResponseWriter, request *htt
 	path := request.URL.Path
 
 	//match /api/dav{subPath}
-	pattern := fmt.Sprintf(`^%s(.*)$`, WEBDAV_PREFIX)
+	pattern := fmt.Sprintf(`^%s(.*)$`, model.WEBDAV_PREFIX)
 	reg := regexp.MustCompile(pattern)
 	strs := reg.FindStringSubmatch(path)
 	if len(strs) == 2 {

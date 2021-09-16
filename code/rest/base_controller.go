@@ -2,7 +2,10 @@ package rest
 
 import (
 	"fmt"
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/i18n"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"github.com/eyebluecn/tank/code/tool/util"
@@ -12,22 +15,28 @@ import (
 )
 
 type BaseController struct {
-	BaseBean
-	userDao    *UserDao
-	sessionDao *SessionDao
+	core.BaseBean
+	UserService *service.UserService
+	UserDao     *dao.UserDao
+	sessionDao  *dao.SessionDao
 }
 
 func (this *BaseController) Init() {
 
 	this.BaseBean.Init()
 
-	b := core.CONTEXT.GetBean(this.userDao)
-	if b, ok := b.(*UserDao); ok {
-		this.userDao = b
+	b := core.CONTEXT.GetBean(this.UserService)
+	if b, ok := b.(*service.UserService); ok {
+		this.UserService = b
+	}
+
+	b = core.CONTEXT.GetBean(this.UserDao)
+	if b, ok := b.(*dao.UserDao); ok {
+		this.UserDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.sessionDao)
-	if b, ok := b.(*SessionDao); ok {
+	if b, ok := b.(*dao.SessionDao); ok {
 		this.sessionDao = b
 	}
 
@@ -51,14 +60,14 @@ func (this *BaseController) Wrap(f func(writer http.ResponseWriter, request *htt
 		var webResult *result.WebResult = nil
 
 		//if the api not annotated with GUEST. login is required.
-		if qualifiedRole != USER_ROLE_GUEST {
-			user := this.checkUser(request)
+		if qualifiedRole != constant.USER_ROLE_GUEST {
+			user := this.UserService.CheckUser(request)
 
-			if user.Status == USER_STATUS_DISABLED {
+			if user.Status == constant.USER_STATUS_DISABLED {
 				//check user's status
 				webResult = result.CustomWebResultI18n(request, result.USER_DISABLED, i18n.UserDisabled)
 			} else {
-				if qualifiedRole == USER_ROLE_ADMINISTRATOR && user.Role != USER_ROLE_ADMINISTRATOR {
+				if qualifiedRole == constant.USER_ROLE_ADMINISTRATOR && user.Role != constant.USER_ROLE_ADMINISTRATOR {
 					webResult = result.ConstWebResult(result.UNAUTHORIZED)
 				} else {
 					webResult = f(writer, request)
@@ -107,6 +116,6 @@ func (this *BaseController) Success(data interface{}) *result.WebResult {
 }
 
 //allow cors.
-func (this *BaseController) allowCORS(writer http.ResponseWriter) {
+func (this *BaseController) AllowCORS(writer http.ResponseWriter) {
 	util.AllowCORS(writer)
 }

@@ -1,7 +1,10 @@
 package rest
 
 import (
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/builder"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"net/http"
@@ -11,20 +14,20 @@ import (
 
 type ImageCacheController struct {
 	BaseController
-	imageCacheDao     *ImageCacheDao
-	imageCacheService *ImageCacheService
+	imageCacheDao     *dao.ImageCacheDao
+	imageCacheService *service.ImageCacheService
 }
 
 func (this *ImageCacheController) Init() {
 	this.BaseController.Init()
 
 	b := core.CONTEXT.GetBean(this.imageCacheDao)
-	if b, ok := b.(*ImageCacheDao); ok {
+	if b, ok := b.(*dao.ImageCacheDao); ok {
 		this.imageCacheDao = b
 	}
 
 	b = core.CONTEXT.GetBean(this.imageCacheService)
-	if b, ok := b.(*ImageCacheService); ok {
+	if b, ok := b.(*service.ImageCacheService); ok {
 		this.imageCacheService = b
 	}
 
@@ -34,10 +37,10 @@ func (this *ImageCacheController) RegisterRoutes() map[string]func(writer http.R
 
 	routeMap := make(map[string]func(writer http.ResponseWriter, request *http.Request))
 
-	routeMap["/api/image/cache/delete"] = this.Wrap(this.Delete, USER_ROLE_USER)
-	routeMap["/api/image/cache/delete/batch"] = this.Wrap(this.DeleteBatch, USER_ROLE_USER)
-	routeMap["/api/image/cache/detail"] = this.Wrap(this.Detail, USER_ROLE_USER)
-	routeMap["/api/image/cache/page"] = this.Wrap(this.Page, USER_ROLE_USER)
+	routeMap["/api/image/cache/delete"] = this.Wrap(this.Delete, constant.USER_ROLE_USER)
+	routeMap["/api/image/cache/delete/batch"] = this.Wrap(this.DeleteBatch, constant.USER_ROLE_USER)
+	routeMap["/api/image/cache/detail"] = this.Wrap(this.Detail, constant.USER_ROLE_USER)
+	routeMap["/api/image/cache/page"] = this.Wrap(this.Page, constant.USER_ROLE_USER)
 
 	return routeMap
 }
@@ -51,7 +54,7 @@ func (this *ImageCacheController) Detail(writer http.ResponseWriter, request *ht
 
 	imageCache := this.imageCacheService.Detail(uuid)
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 	if imageCache.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -72,7 +75,7 @@ func (this *ImageCacheController) Page(writer http.ResponseWriter, request *http
 	matterUuid := request.FormValue("matterUuid")
 	orderSize := request.FormValue("orderSize")
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 	userUuid = user.Uuid
 
 	var page int
@@ -122,7 +125,7 @@ func (this *ImageCacheController) Delete(writer http.ResponseWriter, request *ht
 
 	imageCache := this.imageCacheDao.FindByUuid(uuid)
 
-	user := this.checkUser(request)
+	user := this.UserService.CheckUser(request)
 	if imageCache.UserUuid != user.Uuid {
 		panic(result.UNAUTHORIZED)
 	}
@@ -145,7 +148,7 @@ func (this *ImageCacheController) DeleteBatch(writer http.ResponseWriter, reques
 
 		imageCache := this.imageCacheDao.FindByUuid(uuid)
 
-		user := this.checkUser(request)
+		user := this.UserService.CheckUser(request)
 		if imageCache.UserUuid != user.Uuid {
 			panic(result.UNAUTHORIZED)
 		}

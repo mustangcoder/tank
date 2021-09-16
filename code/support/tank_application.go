@@ -3,6 +3,7 @@ package support
 import (
 	"flag"
 	"fmt"
+	"github.com/eyebluecn/tank/code/constant"
 	"github.com/eyebluecn/tank/code/core"
 	"github.com/eyebluecn/tank/code/tool/result"
 	"github.com/eyebluecn/tank/code/tool/util"
@@ -90,7 +91,7 @@ func (this *TankApplication) Start() {
 
 		//default host.
 		if this.host == "" {
-			this.host = fmt.Sprintf("http://127.0.0.1:%d", core.DEFAULT_SERVER_PORT)
+			this.host = fmt.Sprintf("http://127.0.0.1:%d", constant.DEFAULT_SERVER_PORT)
 		}
 
 		if this.username == "" {
@@ -174,11 +175,11 @@ func (this *TankApplication) HandleMirror() {
 	urlString := fmt.Sprintf("%s/api/matter/mirror", this.host)
 
 	params := url.Values{
-		"srcPath":         {this.src},
-		"destPath":        {this.dest},
-		"overwrite":       {fmt.Sprintf("%v", this.overwrite)},
-		core.USERNAME_KEY: {this.username},
-		core.PASSWORD_KEY: {this.password},
+		"srcPath":             {this.src},
+		"destPath":            {this.dest},
+		"overwrite":           {fmt.Sprintf("%v", this.overwrite)},
+		constant.USERNAME_KEY: {this.username},
+		constant.PASSWORD_KEY: {this.password},
 	}
 
 	response, err := http.PostForm(urlString, params)
@@ -220,11 +221,11 @@ func (this *TankApplication) HandleCrawl() {
 	urlString := fmt.Sprintf("%s/api/matter/crawl", this.host)
 
 	params := url.Values{
-		"url":             {this.src},
-		"destPath":        {this.dest},
-		"filename":        {this.filename},
-		core.USERNAME_KEY: {this.username},
-		core.PASSWORD_KEY: {this.password},
+		"url":                 {this.src},
+		"destPath":            {this.dest},
+		"filename":            {this.filename},
+		constant.USERNAME_KEY: {this.username},
+		constant.PASSWORD_KEY: {this.password},
 	}
 
 	response, err := http.PostForm(urlString, params)
@@ -251,6 +252,6 @@ func (this *TankApplication) HandleCrawl() {
 //fetch the application version
 func (this *TankApplication) HandleVersion() {
 
-	fmt.Printf("EyeblueTank %s\r\n", core.VERSION)
+	fmt.Printf("EyeblueTank %s\r\n", constant.VERSION)
 
 }

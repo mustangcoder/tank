@@ -2,7 +2,9 @@ package support
 
 import (
 	"github.com/eyebluecn/tank/code/core"
+	"github.com/eyebluecn/tank/code/dao"
 	"github.com/eyebluecn/tank/code/rest"
+	"github.com/eyebluecn/tank/code/service"
 	"github.com/eyebluecn/tank/code/tool/cache"
 	"github.com/jinzhu/gorm"
 	"net/http"
@@ -120,67 +122,69 @@ func (this *TankContext) registerBeans() {
 
 	//alien
 	this.registerBean(new(rest.AlienController))
-	this.registerBean(new(rest.AlienService))
+	this.registerBean(new(service.AlienService))
 
 	//bridge
-	this.registerBean(new(rest.BridgeDao))
-	this.registerBean(new(rest.BridgeService))
+	this.registerBean(new(dao.BridgeDao))
+	this.registerBean(new(service.BridgeService))
 
 	//dashboard
 	this.registerBean(new(rest.DashboardController))
-	this.registerBean(new(rest.DashboardDao))
-	this.registerBean(new(rest.DashboardService))
+	this.registerBean(new(dao.DashboardDao))
+	this.registerBean(new(service.DashboardService))
 
 	//downloadToken
-	this.registerBean(new(rest.DownloadTokenDao))
+	this.registerBean(new(dao.DownloadTokenDao))
 
 	//imageCache
 	this.registerBean(new(rest.ImageCacheController))
-	this.registerBean(new(rest.ImageCacheDao))
-	this.registerBean(new(rest.ImageCacheService))
+	this.registerBean(new(dao.ImageCacheDao))
+	this.registerBean(new(service.ImageCacheService))
 
 	//install
 	this.registerBean(new(rest.InstallController))
 
 	//matter
 	this.registerBean(new(rest.MatterController))
-	this.registerBean(new(rest.MatterDao))
-	this.registerBean(new(rest.MatterService))
+	this.registerBean(new(dao.MatterDao))
+	this.registerBean(new(service.MatterService))
 
 	//preference
 	this.registerBean(new(rest.PreferenceController))
-	this.registerBean(new(rest.PreferenceDao))
-	this.registerBean(new(rest.PreferenceService))
+	this.registerBean(new(dao.PreferenceDao))
+	this.registerBean(new(service.PreferenceService))
 
 	//footprint
 	this.registerBean(new(rest.FootprintController))
-	this.registerBean(new(rest.FootprintDao))
-	this.registerBean(new(rest.FootprintService))
+	this.registerBean(new(dao.FootprintDao))
+	this.registerBean(new(service.FootprintService))
 
 	//session
-	this.registerBean(new(rest.SessionDao))
-	this.registerBean(new(rest.SessionService))
+	this.registerBean(new(dao.SessionDao))
+	this.registerBean(new(service.SessionService))
 
 	//share
 	this.registerBean(new(rest.ShareController))
-	this.registerBean(new(rest.ShareDao))
-	this.registerBean(new(rest.ShareService))
+	this.registerBean(new(dao.ShareDao))
+	this.registerBean(new(service.ShareService))
 
 	//uploadToken
-	this.registerBean(new(rest.UploadTokenDao))
+	this.registerBean(new(dao.UploadTokenDao))
 
 	//task
-	this.registerBean(new(rest.TaskService))
+	this.registerBean(new(service.TaskService))
 
 	//user
 	this.registerBean(new(rest.UserController))
-	this.registerBean(new(rest.UserDao))
-	this.registerBean(new(rest.UserService))
+	this.registerBean(new(dao.UserDao))
+	this.registerBean(new(service.UserService))
 
 	//webdav
 	this.registerBean(new(rest.DavController))
-	this.registerBean(new(rest.DavService))
+	this.registerBean(new(service.DavService))
 
+	//healthCheck
+	this.registerBean(new(rest.ServerStatusController))
 }
 
 func (this *TankContext) GetBean(bean core.Bean) core.Bean {
